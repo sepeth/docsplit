@@ -41,7 +41,7 @@ module Docsplit
         raise ExtractionFailed, result if $? != 0
       else
         page_list(pages).each do |page|
-          out_file  = ESCAPE[File.join(directory, "#{basename}_#{page}.#{format}")]
+          out_file = ESCAPE[File.join(directory, substitute_pattern(basename, page, format))]
           cmd = "MAGICK_TMPDIR=#{tempdir} OMP_NUM_THREADS=2 gm convert +adjoin #{common} #{escaped_pdf}[#{page - 1}] #{out_file} 2>&1".chomp
           result = `#{cmd}`.chomp
           raise ExtractionFailed, result if $? != 0
@@ -53,6 +53,10 @@ module Docsplit
 
 
     private
+    # Generate filename from the given pattern
+    def substitute_pattern(basename, page, format)
+      @pattern.gsub(/\$basename/, basename).gsub(/\$page/, page.to_s).gsub(/\$format/, format.to_s)
+    end
 
     # Extract the relevant GraphicsMagick options from the options hash.
     def extract_options(options)
@@ -63,6 +67,7 @@ module Docsplit
       @sizes   = [options[:size]].flatten.compact
       @sizes   = [nil] if @sizes.empty?
       @rolling = !!options[:rolling]
+      @pattern = options[:pattern]
     end
 
     # If there's only one size requested, generate the images directly into
